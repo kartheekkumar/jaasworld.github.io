@@ -183,45 +183,86 @@ document.getElementById("imagePopup").addEventListener("click", (e) => {
   }
 });
 
-function shareProduct(product) {
-  const message = `Check this product:\n${product.name}\nPrice: ₹${product.price}`;
+// Generate poster-style share image
+async function createShareImage(product) {
+  return new Promise(async (resolve) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-  const shareData = {
-    title: product.name,
-    text: message, // ✅ Ensure text always included
-    url: window.location.href,
-  };
+    const width = 1080; // HD square poster
+    const height = 1350;
+    canvas.width = width;
+    canvas.height = height;
 
-  // ✅ Try image sharing if supported
-  if (navigator.canShare && product.image) {
-    fetch(product.image)
-      .then((res) => res.blob())
-      .then((blob) => {
-        const file = new File([blob], `${product.name}.jpg`, {
-          type: blob.type,
-        });
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
 
-        if (navigator.canShare({ files: [file] })) {
-          shareData.files = [file];
+    // Load main product image
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = product.image;
 
-          // ✅ Must reassign text AFTER files (browser bug fix)
-          shareData.text = message + "\n\n" + window.location.href;
-        }
+    img.onload = () => {
+      // Draw product image top part
+      const imgHeight = 900;
+      ctx.drawImage(img, 0, 0, width, imgHeight);
 
-        navigator.share(shareData).catch(() => {});
-      });
-  } else {
-    // ✅ Normal mobile share
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {});
-    } else {
-      // ✅ Desktop fallback
-      window.open(
-        `https://wa.me/?text=${encodeURIComponent(
-          message + "\n" + window.location.href
-        )}`,
-        "_blank"
+      // Text styles
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+
+      // Product Name
+      ctx.font = "bold 60px Arial";
+      ctx.fillText(product.name, width / 2, imgHeight + 120);
+
+      // Price
+      ctx.fillStyle = "green";
+      ctx.font = "bold 70px Arial";
+      ctx.fillText(`ONLY ₹${product.price}`, width / 2, imgHeight + 240);
+
+      // Brand footer
+      ctx.fillStyle = "#555";
+      ctx.font = "bold 50px Arial";
+      ctx.fillText("Buy Now @ JaasWorld", width / 2, imgHeight + 360);
+
+      // Convert to Blob
+      canvas.toBlob(
+        (blob) => {
+          const file = new File([blob], `${product.name}.jpg`, {
+            type: "image/jpeg",
+          });
+          resolve(file);
+        },
+        "image/jpeg",
+        0.95
       );
+    };
+  });
+}
+
+async function shareProduct(product) {
+  const caption = `${product.name}\nPrice: ₹${product.price}\nBuy Now @ JaasWorld`;
+
+  try {
+    // ✅ Create the merged share image
+    const file = await createShareImage(product);
+
+    // ✅ Device supports sharing with image
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: product.name,
+        text: caption,
+      });
+      return;
     }
+  } catch (err) {
+    console.log("Image share not supported, fallback used.");
   }
+
+  // ✅ WhatsApp Fallback → Works on all browsers
+  const whatsappMsg = `${product.name}\nPrice: ₹${product.price}\nBuy Now @ JaasWorld`;
+  const encoded = encodeURIComponent(whatsappMsg);
+  window.open(`https://wa.me/?text=${encoded}`, "_blank");
 }
