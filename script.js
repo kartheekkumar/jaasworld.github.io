@@ -205,7 +205,7 @@ async function createShareImage(product) {
 
     img.onload = () => {
       // Draw product image top part
-      const imgHeight = 900;
+      const imgHeight = 1000;
       ctx.drawImage(img, 0, 0, width, imgHeight);
 
       // Text styles
@@ -242,27 +242,32 @@ async function createShareImage(product) {
 }
 
 async function shareProduct(product) {
-  const caption = `${product.name}\nPrice: ₹${product.price}\nBuy Now @ JaasWorld`;
+  const productLink = window.location.href; // ✅ Your catalog link
+  const caption =
+    `${product.name}\nPrice: ₹${product.price}\nBuy Now @ JaasWorld\n` +
+    productLink;
 
   try {
-    // ✅ Create the merged share image
+    // ✅ Create poster-style merged image (no link inside canvas)
     const file = await createShareImage(product);
 
-    // ✅ Device supports sharing with image
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: product.name,
-        text: caption,
-      });
+    const shareData = {
+      files: [file],
+      title: product.name,
+      text: caption, // ✅ Link OUTSIDE image in caption
+    };
+
+    if (navigator.canShare && navigator.canShare(shareData)) {
+      await navigator.share(shareData);
       return;
     }
   } catch (err) {
-    console.log("Image share not supported, fallback used.");
+    console.log("Share with image not supported, fallback...");
   }
 
-  // ✅ WhatsApp Fallback → Works on all browsers
-  const whatsappMsg = `${product.name}\nPrice: ₹${product.price}\nBuy Now @ JaasWorld`;
+  // ✅ WhatsApp fallback (text + link always works)
+  const whatsappMsg = `${product.name}\nPrice: ₹${product.price}\n${productLink}`;
   const encoded = encodeURIComponent(whatsappMsg);
+
   window.open(`https://wa.me/?text=${encoded}`, "_blank");
 }
