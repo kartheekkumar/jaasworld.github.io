@@ -189,7 +189,7 @@ async function createShareImage(product) {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    const width = 1080; // HD square poster
+    const width = 1080;
     const height = 1350;
     canvas.width = width;
     canvas.height = height;
@@ -198,35 +198,29 @@ async function createShareImage(product) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
-    // Load main product image
+    // Load product image
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = product.image;
 
     img.onload = () => {
-      // Draw product image top part
       const imgHeight = 900;
       ctx.drawImage(img, 0, 0, width, imgHeight);
 
-      // Text styles
-      ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
 
-      // Product Name
+      // ✅ Product name
+      ctx.fillStyle = "#000";
       ctx.font = "bold 60px Arial";
       ctx.fillText(product.name, width / 2, imgHeight + 120);
 
-      // Price
+      // ✅ Price
       ctx.fillStyle = "green";
       ctx.font = "bold 70px Arial";
-      ctx.fillText(`ONLY ₹${product.price}`, width / 2, imgHeight + 240);
+      ctx.fillText(`₹${product.price}`, width / 2, imgHeight + 240);
 
-      // Brand footer
-      ctx.fillStyle = "#555";
-      ctx.font = "bold 50px Arial";
-      ctx.fillText("Buy Now @ JaasWorld", width / 2, imgHeight + 360);
+      // ✅ Remove "Buy Now @JaasWorld" completely
 
-      // Convert to Blob
       canvas.toBlob(
         (blob) => {
           const file = new File([blob], `${product.name}.jpg`, {
@@ -244,37 +238,46 @@ async function createShareImage(product) {
 async function shareProduct(product) {
   const productLink = window.location.href;
 
-  const caption = `${product.name}\nPrice: ₹${product.price}\n` + productLink;
+  // ✅ Caption visible on all platforms
+  const caption = `${product.name}\nPrice: ₹${product.price}\n${productLink}`;
 
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isDesktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // ✅ Desktop or iPhone → WhatsApp link only (image sharing not supported)
-  if (isIOS || isDesktop) {
-    const waMsg = encodeURIComponent(caption);
-    window.open(`https://wa.me/?text=${waMsg}`, "_blank");
-    return;
-  }
+  // ✅ ANDROID → Full share (image + caption + link)
+  if (!isIOS && isMobile && navigator.canShare) {
+    try {
+      const file = await createShareImage(product);
 
-  // ✅ Android → Try image + caption share
-  try {
-    const file = await createShareImage(product);
+      const shareData = {
+        files: [file],
+        text: caption,
+        title: product.name,
+      };
 
-    const shareData = {
-      files: [file],
-      title: product.name,
-      text: caption,
-    };
-
-    if (navigator.canShare && navigator.canShare(shareData)) {
-      await navigator.share(shareData); // ✅ Android shows image + caption + link
-      return;
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (err) {
+      console.log("Android image share failed → fallback.", err);
     }
-  } catch (err) {
-    console.log("Image share failed, using WhatsApp fallback.");
   }
 
-  // ✅ Android fallback → WhatsApp link
-  const fallbackMsg = encodeURIComponent(caption);
-  window.open(`https://wa.me/?text=${fallbackMsg}`, "_blank");
+  // ✅ iPHONE or unsupported APP → share TEXT only
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: product.name,
+        text: caption,
+      });
+      return;
+    } catch (err) {
+      console.log("Native share failed → fallback.");
+    }
+  }
+
+  // ✅ DESKTOP or old browsers → open WhatsApp with caption + link
+  const encoded = encodeURIComponent(caption);
+  window.open(`https://wa.me/?text=${encoded}`, "_blank");
 }
