@@ -130,6 +130,23 @@ body {
   border-radius: 6px;
   border: 1px solid #ddd;
 }
+@keyframes bounce {
+  0% {
+    bottom: 70px;
+  }
+  25% {
+    bottom: 75px;
+  }
+  50% {
+    bottom: 70px;
+  }
+  75% {
+    bottom: 75px;
+  }
+  100% {
+    bottom: 70px;
+  }
+}
 
 /* ✅ Floating Support Button */
 .floating-support {
@@ -148,6 +165,14 @@ body {
   cursor: pointer;
   z-index: 1000;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  animation-name: bounce;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+}
+.floating-support img {
+  width: 100%;
+  border: 2px solid #000000;
+  border-radius: 50%;
 }
 
 /* ✅ Support Menu */
@@ -432,37 +457,13 @@ body {
     border: 1px solid #ddd;
     font-size: 14px;
   }
-  @keyframes bounce {
-    0% {
-      bottom: 70px;
-    }
-    25% {
-      bottom: 75px;
-    }
-    50% {
-      bottom: 70px;
-    }
-    75% {
-      bottom: 75px;
-    }
-    100% {
-      bottom: 70px;
-    }
-  }
+
   /* ✅ Floating Support Button smaller on mobile */
   .floating-support {
     width: 50px;
     height: 50px;
     font-size: 22px;
     bottom: 70px;
-    animation-name: bounce;
-    animation-duration: 2s;
-    animation-iteration-count: infinite;
-  }
-  .floating-support img {
-    width: 100%;
-    border: 2px solid #000000;
-    border-radius: 50%;
   }
   .support-menu {
     bottom: 128px;
